@@ -70,6 +70,7 @@ private:
 	int CoordinateToIndex(int x, int y, int width);
 
 	void HideApple(int MaxX, int MinX, int MaxY, int MinY);
+	void DrawnUIText(HDC hdc);
 
 private:
 	HDC m_hFrontDC = nullptr;
@@ -130,4 +131,10 @@ private:
 	int boardTop = 80;
 	int boardRight = 880;
 	int boardBottom = 600;
+
+	//사과 게임 점수
+	int Score;
+
+	//제한 시간
+	float TimeLimit = 0.0f;
 };

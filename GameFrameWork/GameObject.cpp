@@ -92,8 +92,6 @@ void GameObject::SetColliderBox(float width, float height)
 	m_pColliderBox->halfSize.y = height / 2.0f;
 }
 
-// 과제: 해당 코드의 문제는 무엇일까요? 어떻게 개선하면 좋을까요?
-// 개선 방향에 대해 서로 토론하고 비교해 보세요.
 void GameObject::DrawCollider(HDC hdc)
 {
 	HPEN hPen = CreatePen(PS_SOLID, 2, RGB(255, 0, 0));

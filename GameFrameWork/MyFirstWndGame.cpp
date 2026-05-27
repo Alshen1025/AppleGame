@@ -16,7 +16,7 @@ bool MyFirstWndGame::Initialize()
 {
     m_pGameTimer = new GameTimer();
     m_pGameTimer->Reset();
-
+    
     const wchar_t* className = L"MyFirstWndGame";
     const wchar_t* windowName = L"MyFirstWndGame";
 
@@ -38,6 +38,9 @@ bool MyFirstWndGame::Initialize()
     m_hDefaultBitmap = (HBITMAP)SelectObject(m_hBackDC, m_hBackBitmap);
 
     m_GameObjectPtrTable = new GameObjectBase * [MAX_GAME_OBJECT_COUNT];
+
+    //사과 게임 점수 초기화
+    Score = 0;
 
     for (int i = 0; i < MAX_GAME_OBJECT_COUNT; ++i)
     {
@@ -129,6 +132,7 @@ void MyFirstWndGame::LogicUpdate()
             m_GameObjectPtrTable[i]->Update(m_fDeltaTime);
         }
     }
+    
 }
 
 void MyFirstWndGame::CheckAppleResult(ArrayIndex indexStart, ArrayIndex indexEnd)
@@ -138,11 +142,7 @@ void MyFirstWndGame::CheckAppleResult(ArrayIndex indexStart, ArrayIndex indexEnd
     std::cout << "indexStart.y : " << indexStart.y << " indexEnd.y : " << indexEnd.y << std::endl;
     //int widthCount = std::abs(indexStart.x - indexEnd.x) + 1;
     //int heightCount = std::abs(indexStart.y - indexEnd.y) + 1;
-    ////일단 가로, 세로가 1인 직사각형에 한해서만 판단하도록 하기
-    //if (widthCount != 1 && heightCount != 1)
-    //{
-    //    return;
-    //}
+    
     int maxX = std::max(indexStart.x, indexEnd.x);
     int minX = std::min(indexStart.x, indexEnd.x);
     int maxY = std::max(indexStart.y, indexEnd.y);
@@ -160,9 +160,76 @@ void MyFirstWndGame::HideApple(int MaxX, int MinX, int MaxY, int MinY)
     std::cout << "HideApple" << std::endl;
     for (int i = MinX; i <= MaxX; i++) {
         for (int j = MinY; j <= MaxY; j++) {
+            if (!ApplesArray[i][j]->GetIsDelete())
+            {
+                Score++;
+            }
             ApplesArray[i][j]->SetIsDelete(true);
+            
         }
     }
+    //return 0;
+}
+
+void MyFirstWndGame::DrawnUIText(HDC hdc)
+{
+    HFONT hFont = CreateFontW(48, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+        DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Arial");
+
+    HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
+
+
+    //점수 출력
+    //with = 1024, height = 720
+    RECT rect = {
+        120,
+        20,
+        220,
+        80
+    };
+    wchar_t buffer[16];
+    swprintf_s(buffer, L"%d", Score);
+
+    SetBkMode(hdc, TRANSPARENT);
+    SetTextColor(hdc, RGB(0, 0, 0));
+
+    DrawText(
+        hdc,
+        buffer,
+        -1,
+        &rect,
+        DT_CENTER | DT_VCENTER | DT_SINGLELINE
+    );
+
+    //남은 시간 출력
+    RECT rect2 = {
+        680,
+        20,
+        850,
+        80
+    };
+    wchar_t buffer2[16];
+
+    int totalSeconds = static_cast<int>(TimeLimit);
+    int minutes = totalSeconds / 60;
+    int seconds = totalSeconds % 60;
+
+    swprintf_s(buffer2, L"%02d : %02d", minutes, seconds);
+
+    SetBkMode(hdc, TRANSPARENT);
+    SetTextColor(hdc, RGB(0, 0, 0));
+
+    DrawText(
+        hdc,
+        buffer2,
+        -1,
+        &rect2,
+        DT_CENTER | DT_VCENTER | DT_SINGLELINE
+    );
+    SelectObject(hdc, oldFont);
+    DeleteObject(hFont);
+
 }
 
 bool MyFirstWndGame::IsOverTen(int MaxX, int MinX, int MaxY, int MinY)
@@ -339,7 +406,7 @@ void MyFirstWndGame::Update()
 
     m_fDeltaTime = m_pGameTimer->DeltaTimeMS();
     m_fFrameCount += m_fDeltaTime;
-
+    TimeLimit += m_fDeltaTime / 1000.0f;
     while (m_fFrameCount >= 200.0f)
     {
         FixedUpdate();
@@ -350,7 +417,13 @@ void MyFirstWndGame::Update()
 void MyFirstWndGame::Render()
 {
     //Clear the back buffer
-    ::PatBlt(m_hBackDC, 0, 0, m_width, m_height, WHITENESS);
+    //::PatBlt(m_hBackDC, 0, 0, m_width, m_height, WHITENESS);
+
+    //여기서 배경 그리기
+    HBRUSH hBrush = CreateSolidBrush(RGB(200, 240, 200));
+    RECT rect = { 0, 0, m_width, m_height };
+    FillRect(m_hBackDC, &rect, hBrush);
+    DeleteObject(hBrush);
 
     //메모리 DC에 그리기
     for (int i = 0; i < MAX_GAME_OBJECT_COUNT; ++i)
@@ -367,7 +440,7 @@ void MyFirstWndGame::Render()
             m_GameObjectPtrTable[i]->TextRender(m_hBackDC);
         }
     }
-
+    DrawnUIText(m_hBackDC);
     //메모리 DC에 그려진 결과를 실제 DC(m_hFrontDC)로 복사
     BitBlt(m_hFrontDC, 0, 0, m_width, m_height, m_hBackDC, 0, 0, SRCCOPY);
 }
